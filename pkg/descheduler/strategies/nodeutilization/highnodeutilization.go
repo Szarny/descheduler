@@ -47,6 +47,16 @@ func HighNodeUtilization(ctx context.Context, client clientset.Interface, strate
 	}
 	targetThresholds = make(api.ResourceThresholds)
 
+	labelSelector := strategy.Params.LabelSelector
+	podFilter, err := podutil.NewOptions().
+		WithFilter(evictorFilter.Filter).
+		WithLabelSelector(labelSelector).
+		BuildFilterFunc()
+	if err != nil {
+		klog.ErrorS(err, "Error initializing pod filter function")
+		return
+	}
+
 	setDefaultForThresholds(thresholds, targetThresholds)
 	resourceNames := getResourceNames(targetThresholds)
 
@@ -115,7 +125,7 @@ func HighNodeUtilization(ctx context.Context, client clientset.Interface, strate
 		sourceNodes,
 		highNodes,
 		podEvictor,
-		evictorFilter.Filter,
+		podFilter,
 		resourceNames,
 		"HighNodeUtilization",
 		continueEvictionCond)

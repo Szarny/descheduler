@@ -48,6 +48,16 @@ func LowNodeUtilization(ctx context.Context, client clientset.Interface, strateg
 		return
 	}
 
+	labelSelector := strategy.Params.LabelSelector
+	podFilter, err := podutil.NewOptions().
+		WithFilter(evictorFilter.Filter).
+		WithLabelSelector(labelSelector).
+		BuildFilterFunc()
+	if err != nil {
+		klog.ErrorS(err, "Error initializing pod filter function")
+		return
+	}
+
 	// check if Pods/CPU/Mem are set, if not, set them to 100
 	if _, ok := thresholds[v1.ResourcePods]; !ok {
 		if useDeviationThresholds {
@@ -164,7 +174,7 @@ func LowNodeUtilization(ctx context.Context, client clientset.Interface, strateg
 		sourceNodes,
 		lowNodes,
 		podEvictor,
-		evictorFilter.Filter,
+		podFilter,
 		resourceNames,
 		"LowNodeUtilization",
 		continueEvictionCond)
